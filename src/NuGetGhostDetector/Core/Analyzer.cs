@@ -1,7 +1,7 @@
-using NuGetGhostDetector.Infrastructure;
-using NuGetGhostDetector.Models;
+using A2G.NuGetGhostDetector.Infrastructure;
+using A2G.NuGetGhostDetector.Models;
 
-namespace NuGetGhostDetector.Core;
+namespace A2G.NuGetGhostDetector.Core;
 
 internal sealed record AnalysisResult(
     AnalysisMode AnalysisMode,

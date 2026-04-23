@@ -1,7 +1,7 @@
-using NuGetGhostDetector.Cli;
-using NuGetGhostDetector.Models;
+using A2G.NuGetGhostDetector.Cli;
+using A2G.NuGetGhostDetector.Models;
 
-namespace NuGetGhostDetector.Core;
+namespace A2G.NuGetGhostDetector.Core;
 
 internal sealed class GhostDetectorApp
 {

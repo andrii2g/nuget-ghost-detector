@@ -1,8 +1,8 @@
+using A2G.NuGetGhostDetector.Models;
 using System.Text;
 using System.Text.RegularExpressions;
-using NuGetGhostDetector.Models;
 
-namespace NuGetGhostDetector.Core;
+namespace A2G.NuGetGhostDetector.Core;
 
 internal sealed class CodeScanner
 {

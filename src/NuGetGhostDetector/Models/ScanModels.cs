@@ -1,4 +1,4 @@
-namespace NuGetGhostDetector.Models;
+namespace A2G.NuGetGhostDetector.Models;
 
 internal enum AnalysisMode
 {

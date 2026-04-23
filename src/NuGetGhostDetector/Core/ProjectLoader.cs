@@ -1,8 +1,8 @@
+using A2G.NuGetGhostDetector.Infrastructure;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using NuGetGhostDetector.Infrastructure;
 
-namespace NuGetGhostDetector.Core;
+namespace A2G.NuGetGhostDetector.Core;
 
 internal sealed record ProjectLoadResult(string RootPath, IReadOnlyList<string> ProjectPaths, IReadOnlyList<string> Warnings);
 

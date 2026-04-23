@@ -1,8 +1,8 @@
+using A2G.NuGetGhostDetector.Infrastructure;
+using A2G.NuGetGhostDetector.Models;
 using System.Xml.Linq;
-using NuGetGhostDetector.Infrastructure;
-using NuGetGhostDetector.Models;
 
-namespace NuGetGhostDetector.Core;
+namespace A2G.NuGetGhostDetector.Core;
 
 internal sealed record CompileInputs(
     string ProjectPath,

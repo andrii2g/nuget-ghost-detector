@@ -1,6 +1,6 @@
-using NuGetGhostDetector.Infrastructure;
+using A2G.NuGetGhostDetector.Infrastructure;
 
-namespace NuGetGhostDetector.Core;
+namespace A2G.NuGetGhostDetector.Core;
 
 internal sealed class CompileResolver
 {

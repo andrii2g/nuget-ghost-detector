@@ -1,7 +1,7 @@
 using System.Text;
-using NuGetGhostDetector.Models;
+using A2G.NuGetGhostDetector.Models;
 
-namespace NuGetGhostDetector.Reporting;
+namespace A2G.NuGetGhostDetector.Reporting;
 
 internal static class MarkdownReporter
 {

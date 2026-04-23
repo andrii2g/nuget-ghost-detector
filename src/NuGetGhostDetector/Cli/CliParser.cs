@@ -1,158 +1,129 @@
-using System.Text;
+using System.CommandLine;
+using A2G.NuGetGhostDetector.Core;
+using A2G.NuGetGhostDetector.Reporting;
 
-namespace NuGetGhostDetector.Cli;
+namespace A2G.NuGetGhostDetector.Cli;
 
 internal static class CliParser
 {
-    public static CliParseResult Parse(string[] args)
+    public static Task<int> InvokeAsync(string[] args)
     {
-        if (args.Length == 0)
+        var pathArgument = new Argument<string>("path")
         {
-            return HelpResult();
-        }
+            Description = "Solution, project, or directory to scan."
+        };
 
-        if (HasHelp(args))
+        var formatOption = new Option<OutputFormat>("--format", [])
         {
-            return HelpResult();
-        }
+            Description = "Output format: console, markdown, or json.",
+            DefaultValueFactory = _ => OutputFormat.Console
+        };
 
-        if (!string.Equals(args[0], "scan", StringComparison.OrdinalIgnoreCase))
+        var outputOption = new Option<string?>("--output", [])
         {
-            return new CliParseResult(false, null, $"Error: unsupported command '{args[0]}'. Expected 'scan'.");
-        }
+            Description = "Write the rendered report to a file."
+        };
 
-        if (args.Length < 2 || string.IsNullOrWhiteSpace(args[1]) || args[1].StartsWith("--", StringComparison.Ordinal))
+        var includePossibleOption = new Option<bool>("--include-possible", [])
         {
-            return new CliParseResult(false, null, "Error: missing required <path> argument.");
-        }
+            Description = "Count PossiblyUnused packages in the failure predicate."
+        };
 
-        var inputPath = args[1];
-        var format = OutputFormat.Console;
-        string? outputPath = null;
-        var includePossible = false;
-        var failOnGhosts = false;
-        var verbose = false;
-        var ignoredPackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        for (var i = 2; i < args.Length; i++)
+        var failOnGhostsOption = new Option<bool>("--fail-on-ghosts", [])
         {
-            var arg = args[i];
-            switch (arg)
+            Description = "Exit with code 2 when ghost findings match the configured predicate."
+        };
+
+        var verboseOption = new Option<bool>("--verbose", [])
+        {
+            Description = "Print discovery warnings and parsing details."
+        };
+
+        var ignoreOption = new Option<string[]>("--ignore", [])
+        {
+            Description = "Ignore package IDs. Repeatable or comma-separated.",
+            AllowMultipleArgumentsPerToken = true
+        };
+        ignoreOption.Arity = ArgumentArity.ZeroOrMore;
+
+        var scanCommand = new Command("scan", "Scan a solution, project, or directory for likely unused NuGet packages.");
+        scanCommand.Arguments.Add(pathArgument);
+        scanCommand.Options.Add(formatOption);
+        scanCommand.Options.Add(outputOption);
+        scanCommand.Options.Add(includePossibleOption);
+        scanCommand.Options.Add(failOnGhostsOption);
+        scanCommand.Options.Add(verboseOption);
+        scanCommand.Options.Add(ignoreOption);
+
+        scanCommand.SetAction(parseResult =>
+        {
+            var options = new CliOptions(
+                InputPath: parseResult.GetRequiredValue(pathArgument),
+                Format: parseResult.GetValue(formatOption),
+                OutputPath: parseResult.GetValue(outputOption),
+                IncludePossible: parseResult.GetValue(includePossibleOption),
+                FailOnGhosts: parseResult.GetValue(failOnGhostsOption),
+                Verbose: parseResult.GetValue(verboseOption),
+                IgnoredPackages: (parseResult.GetValue(ignoreOption) ?? [])
+                    .SelectMany(value => value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase));
+
+            return RunScan(options);
+        });
+
+        var rootCommand = new RootCommand("NuGet Ghost Detector");
+        rootCommand.Subcommands.Add(scanCommand);
+        return rootCommand.Parse(args).InvokeAsync();
+    }
+
+    private static int RunScan(CliOptions options)
+    {
+        try
+        {
+            var app = new GhostDetectorApp();
+            var result = app.Run(options, Directory.GetCurrentDirectory());
+
+            var rendered = options.Format switch
             {
-                case "--format":
-                    if (i + 1 >= args.Length)
-                    {
-                        return new CliParseResult(false, null, "Error: --format requires a value.");
-                    }
+                OutputFormat.Console => ConsoleReporter.Render(result),
+                OutputFormat.Markdown => MarkdownReporter.Render(result),
+                OutputFormat.Json => JsonReporter.Render(result),
+                _ => throw new InvalidOperationException($"Unsupported format: {options.Format}")
+            };
 
-                    i++;
-                    if (!TryParseFormat(args[i], out format))
-                    {
-                        return new CliParseResult(false, null, $"Error: unsupported format '{args[i]}'.");
-                    }
-                    break;
-
-                case "--output":
-                    if (i + 1 >= args.Length)
-                    {
-                        return new CliParseResult(false, null, "Error: --output requires a value.");
-                    }
-
-                    outputPath = args[++i];
-                    break;
-
-                case "--include-possible":
-                    includePossible = true;
-                    break;
-
-                case "--fail-on-ghosts":
-                    failOnGhosts = true;
-                    break;
-
-                case "--verbose":
-                    verbose = true;
-                    break;
-
-                case "--ignore":
-                    if (i + 1 >= args.Length)
-                    {
-                        return new CliParseResult(false, null, "Error: --ignore requires a value.");
-                    }
-
-                    foreach (var package in args[++i].Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
-                    {
-                        ignoredPackages.Add(package);
-                    }
-                    break;
-
-                default:
-                    return new CliParseResult(false, null, $"Error: unknown option '{arg}'.");
+            if (string.IsNullOrWhiteSpace(options.OutputPath))
+            {
+                Console.WriteLine(rendered);
             }
+            else
+            {
+                var outputPath = Path.GetFullPath(options.OutputPath, Directory.GetCurrentDirectory());
+                var outputDirectory = Path.GetDirectoryName(outputPath);
+                if (!string.IsNullOrEmpty(outputDirectory))
+                {
+                    Directory.CreateDirectory(outputDirectory);
+                }
+
+                File.WriteAllText(outputPath, rendered);
+                if (options.Format == OutputFormat.Console)
+                {
+                    Console.WriteLine(rendered);
+                }
+                else
+                {
+                    Console.WriteLine($"Wrote {options.Format.ToString().ToLowerInvariant()} report to {outputPath}");
+                }
+            }
+
+            var shouldFail = options.FailOnGhosts &&
+                (result.TotalLikelyUnused > 0 || (options.IncludePossible && result.TotalPossiblyUnused > 0));
+
+            return shouldFail ? 2 : 0;
         }
-
-        return new CliParseResult(true, new CliOptions(
-            Command: "scan",
-            InputPath: inputPath,
-            Format: format,
-            OutputPath: outputPath,
-            IncludePossible: includePossible,
-            FailOnGhosts: failOnGhosts,
-            Verbose: verbose,
-            ShowHelp: false,
-            IgnoredPackages: ignoredPackages), null);
-    }
-
-    public static string GetHelpText()
-    {
-        var builder = new StringBuilder();
-        builder.AppendLine("NuGet Ghost Detector");
-        builder.AppendLine();
-        builder.AppendLine("Usage:");
-        builder.AppendLine("  nuget-ghost scan <path> [options]");
-        builder.AppendLine();
-        builder.AppendLine("Options:");
-        builder.AppendLine("  --format <console|markdown|json>   Default: console");
-        builder.AppendLine("  --output <path>                    Write report to a file");
-        builder.AppendLine("  --ignore <packageId[,packageId]>   Repeatable, case-insensitive");
-        builder.AppendLine("  --fail-on-ghosts                   Exit 2 on ghost findings");
-        builder.AppendLine("  --include-possible                 Count PossiblyUnused in failure predicate");
-        builder.AppendLine("  --verbose                          Print discovery details");
-        builder.AppendLine("  --help                             Show this help text");
-        return builder.ToString().TrimEnd();
-    }
-
-    private static bool HasHelp(IEnumerable<string> args)
-        => args.Any(arg => string.Equals(arg, "--help", StringComparison.OrdinalIgnoreCase) ||
-                           string.Equals(arg, "-h", StringComparison.OrdinalIgnoreCase));
-
-    private static bool TryParseFormat(string rawValue, out OutputFormat format)
-    {
-        switch (rawValue.ToLowerInvariant())
+        catch (Exception ex)
         {
-            case "console":
-                format = OutputFormat.Console;
-                return true;
-            case "markdown":
-                format = OutputFormat.Markdown;
-                return true;
-            case "json":
-                format = OutputFormat.Json;
-                return true;
-            default:
-                format = default;
-                return false;
+            Console.Error.WriteLine($"Error: {ex.Message}");
+            return 1;
         }
     }
-
-    private static CliParseResult HelpResult()
-        => new(true, new CliOptions(
-            Command: "help",
-            InputPath: string.Empty,
-            Format: OutputFormat.Console,
-            OutputPath: null,
-            IncludePossible: false,
-            FailOnGhosts: false,
-            Verbose: false,
-            ShowHelp: true,
-            IgnoredPackages: new HashSet<string>(StringComparer.OrdinalIgnoreCase)), null);
 }

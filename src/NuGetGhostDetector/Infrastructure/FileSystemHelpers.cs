@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace NuGetGhostDetector.Infrastructure;
+namespace A2G.NuGetGhostDetector.Infrastructure;
 
 internal static class FileSystemHelpers
 {

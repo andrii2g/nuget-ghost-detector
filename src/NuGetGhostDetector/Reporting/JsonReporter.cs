@@ -1,7 +1,7 @@
+using A2G.NuGetGhostDetector.Models;
 using System.Text.Json;
-using NuGetGhostDetector.Models;
 
-namespace NuGetGhostDetector.Reporting;
+namespace A2G.NuGetGhostDetector.Reporting;
 
 internal static class JsonReporter
 {
