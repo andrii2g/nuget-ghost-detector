@@ -1,6 +1,9 @@
-﻿################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
-################################################################################
-
-/src/NuGetGhostDetector/obj
-/.vs/NuGetGhostDetector.slnx/FileContentIndex
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.suo
+TestResults/
+artifacts/
+*.nupkg

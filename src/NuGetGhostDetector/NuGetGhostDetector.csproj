@@ -5,6 +5,15 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AssemblyName>NuGetGhostDetector</AssemblyName>
+    <RootNamespace>NuGetGhostDetector</RootNamespace>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>nuget-ghost</ToolCommandName>
+    <PackageId>NuGetGhostDetector</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Andrii2G</Authors>
+    <Description>CLI tool that detects likely unused direct NuGet PackageReference entries in .NET projects.</Description>
+    <PackageTags>nuget;cli;dotnet-tool;dependencies;cleanup</PackageTags>
   </PropertyGroup>
 
 </Project>
