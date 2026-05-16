@@ -19,6 +19,28 @@ dotnet run --project src/NuGetGhostDetector -- scan . --format markdown --output
 dotnet run --project src/NuGetGhostDetector -- scan . --fail-on-ghosts --include-possible
 ```
 
+## Input types
+
+The scanner accepts:
+- a `.sln` or `.slnx`
+- a single `.csproj`
+- a directory
+
+## Output formats
+
+Supported formats:
+- `console`
+- `markdown`
+- `json`
+
+Useful options:
+
+```bash
+dotnet run --project src/NuGetGhostDetector -- scan . --format json
+dotnet run --project src/NuGetGhostDetector -- scan . --ignore Newtonsoft.Json --ignore Serilog
+dotnet run --project src/NuGetGhostDetector -- scan . --fail-on-ghosts
+```
+
 ## Notes
 
 - Direct package discovery supports `.csproj`, `Directory.Build.props`, `Directory.Build.targets`, and simple literal imports.

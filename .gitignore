@@ -7,3 +7,4 @@ obj/
 TestResults/
 artifacts/
 *.nupkg
+/.tmp-dotnet-home/.dotnet
